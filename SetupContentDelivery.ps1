@@ -10,6 +10,8 @@ param(
 
 )
 
+$scriptPath = Split-Path $script:MyInvocation.MyCommand.Path
+
 # ValidateScript won't check the default value, so do it here
 if (-not (Test-Path ($InstallerDirectoryPath + '\Content Delivery'))) {
     throw "That doesn't look like the installation directory: bailing...."
@@ -23,8 +25,14 @@ else {
 }
 set-location $ServicesDirectory
 
+
+
 #Disco
 $SitePrefixes | % {Copy-Item -Recurse "C:\Users\NetAdmin\Downloads\SDL Web 8.5\Content Delivery\roles\discovery\standalone" ($_ + "Discovery")}  
+
+$SitePrefixes | % {
+    & "$ScriptPath\Merge-DiscoveryStorage.ps1" -discoveryStorageConfig (resolve-path ($_ + "Discovery/config/cd_storage_conf.xml"))
+}
 
 
 
