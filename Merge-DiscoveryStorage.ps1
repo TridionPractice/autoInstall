@@ -23,16 +23,21 @@ $config = [xml](gc $discoveryStorageConfig)
 $defaultDb = [Xml.XmlElement](Select-Xml -Xml $config.DocumentElement -XPath "/Configuration/Global/Storages/Storage[@Id='defaultdb']").Node
 $defaultDb.SetAttribute("dialect", $dbType)
 
-$dataSource = [Xml.XmlElement](Select-Xml -Xml $defaultDb -XPath "Storage/DataSource").Node
+$dataSource = [Xml.XmlElement](Select-Xml -Xml $defaultDb -XPath "DataSource").Node
 Select-Xml -Xml $dataSource -XPath "Property" | % {$_.Node.ParentNode.RemoveChild($_.Node)}
 switch ($dbType) {
     "MSSQL" {
         $dataSource.SetAttribute("Class", 'com.microsoft.sqlserver.jdbc.SQLServerDataSource')
-        AddChildElement $dataSource "serverName" ""
+        AddPropertyElement $dataSource 'serverName' $dbHost
+        AddPropertyElement $dataSource 'portNumber' $dbPort
+        AddPropertyElement $dataSource 'databaseName' $dbName
+        AddPropertyElement $dataSource 'user' $dbUser
+        AddPropertyElement $dataSource 'password' $dbPassword
         }
     "ORACLESQL" {
         $dataSource.SetAttribute("Class", 'oracle.jdbc.pool.OracleDataSource')
         }
 }
 
-$defaultDb
+
+$config.Save($discoveryStorageConfig) 
