@@ -9,7 +9,8 @@ param (
     $dbPort, 
     $dbName, 
     $dbUser, 
-    $dbPassword
+    $dbPassword,
+    [switch]$stripComments
 )
 
 function AddPropertyElement($parent, $name , $value){
@@ -19,25 +20,20 @@ function AddPropertyElement($parent, $name , $value){
     $parent.AppendChild($property)
 }
 
-$config = [xml](gc $discoveryStorageConfig)
-$defaultDb = [Xml.XmlElement](Select-Xml -Xml $config.DocumentElement -XPath "/Configuration/Global/Storages/Storage[@Id='defaultdb']").Node
-$defaultDb.SetAttribute("dialect", $dbType)
+$config = [Xml.Linq.XDocument]::Load($discoveryStorageConfig)
+$defaultDb = $config.Element('Configuration').Element('Global').Element('Storages').Element('Storage') | ? {$_.Attribute("Id").Value -eq 'defaultdb'}
 
-$dataSource = [Xml.XmlElement](Select-Xml -Xml $defaultDb -XPath "DataSource").Node
-Select-Xml -Xml $dataSource -XPath "Property" | % {$_.Node.ParentNode.RemoveChild($_.Node)}
-switch ($dbType) {
-    "MSSQL" {
-        $dataSource.SetAttribute("Class", 'com.microsoft.sqlserver.jdbc.SQLServerDataSource')
-        AddPropertyElement $dataSource 'serverName' $dbHost
-        AddPropertyElement $dataSource 'portNumber' $dbPort
-        AddPropertyElement $dataSource 'databaseName' $dbName
-        AddPropertyElement $dataSource 'user' $dbUser
-        AddPropertyElement $dataSource 'password' $dbPassword
-        }
-    "ORACLESQL" {
-        $dataSource.SetAttribute("Class", 'oracle.jdbc.pool.OracleDataSource')
-        }
+$newStorage = .\CreateDatabaseStorageXElement.ps1 -ServerName $dbHost `
+                                                    -DatabaseUserName $dbUser `
+                                                    -DatabasePassword $dbPassword `
+                                                    -DatabasePortNumber $dbPort `
+                                                    -DatabaseName $dbName
+
+$defaultDb.replaceWith($newStorage)
+
+if ($stripComments) {
+	$comments = $config.DescendantNodes() | ? {$_.NodeType -eq 'Comment'} 
+	$comments | % {$_.Remove()}
 }
-
 
 $config.Save($discoveryStorageConfig) 
