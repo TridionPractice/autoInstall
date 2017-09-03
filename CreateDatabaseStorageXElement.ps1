@@ -22,6 +22,8 @@
         [string]$DatabaseType='MSSQL'
     )
 
+    Add-Type -Assembly System.Xml.Linq
+
 	$template = @"
 	<Storage Type="persistence" Id="" dialect="MSSQL" Class="com.tridion.storage.persistence.JPADAOFactory">
 		<Pool Type="jdbc" Size="5" MonitorInterval="60" IdleTimeout="120" CheckoutTimeout="120"/>

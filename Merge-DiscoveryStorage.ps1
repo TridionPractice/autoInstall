@@ -13,6 +13,8 @@ param (
     [switch]$stripComments
 )
 
+Add-Type -Assembly System.Xml.Linq
+
 function AddPropertyElement($parent, $name , $value){
     $property = $parent.OwnerDocument.CreateElement("Property")
     $property.SetAttribute("Name", $name)
@@ -20,14 +22,16 @@ function AddPropertyElement($parent, $name , $value){
     $parent.AppendChild($property)
 }
 
+$scriptPath = Split-Path $script:MyInvocation.MyCommand.Path
+
 $config = [Xml.Linq.XDocument]::Load($discoveryStorageConfig)
 $defaultDb = $config.Element('Configuration').Element('Global').Element('Storages').Element('Storage') | ? {$_.Attribute("Id").Value -eq 'defaultdb'}
 
-$newStorage = .\CreateDatabaseStorageXElement.ps1 -ServerName $dbHost `
-                                                    -DatabaseUserName $dbUser `
-                                                    -DatabasePassword $dbPassword `
-                                                    -DatabasePortNumber $dbPort `
-                                                    -DatabaseName $dbName
+$newStorage = & "$scriptPath\CreateDatabaseStorageXElement.ps1" -ServerName $dbHost `
+                                                                -DatabaseUserName $dbUser `
+                                                                -DatabasePassword $dbPassword `
+                                                                -DatabasePortNumber $dbPort `
+                                                                -DatabaseName $dbName
 
 $defaultDb.replaceWith($newStorage)
 
