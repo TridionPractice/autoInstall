@@ -10,6 +10,8 @@ param (
     $dbName, 
     $dbUser, 
     $dbPassword,
+    [ValidateScript({Test-Path -PathType Leaf -Path $_})]
+    $licenseLocation,
     [switch]$stripComments
 )
 
@@ -34,6 +36,10 @@ $newStorage = & "$scriptPath\CreateDatabaseStorageXElement.ps1" -ServerName $dbH
                                                                 -DatabaseName $dbName
 
 $defaultDb.replaceWith($newStorage)
+
+$reslashedLicenseLocation = $licenseLocation -replace '\\','/'
+$licenseElement = [Xml.Linq.XElement]::Parse("<License Location='$reslashedLicenseLocation'/>")
+$config.Element('Configuration').Element('ItemTypes').AddAfterSelf($licenseElement)
 
 if ($stripComments) {
 	$comments = $config.DescendantNodes() | ? {$_.NodeType -eq 'Comment'} 

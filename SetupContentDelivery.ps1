@@ -3,7 +3,9 @@
 [string]$InstallerDirectoryPath='C:\Users\NetAdmin\Downloads\SDL Web 8.5',
 
 [string]$ServicesDirectoryPath='C:\SDLServices', 
-[string]$LoggingOutputPath='C:\SDLServiceLogs'
+[string]$LoggingOutputPath='C:\SDLServiceLogs',
+[ValidateScript({Test-Path -PathType Leaf -Path $_})]
+$licenseLocation='C:\SdlLicenses\cd_licenses.xml'
 
 )
 
@@ -30,11 +32,12 @@ Copy-Item -Recurse "C:\Users\NetAdmin\Downloads\SDL Web 8.5\Content Delivery\rol
 & "$ScriptPath\Merge-DiscoveryStorage.ps1" -discoveryStorageConfig (resolve-path ("Discovery\config\cd_storage_conf.xml")) `
                                              -discoveryHost 'localhost' `
                                              -dbType 'MSSQL' `
-                                             -dbHost 'localhost' `
+                                             -dbHost 'sdlcd' `
                                              -dbPort 1433 `
                                              -dbName 'Tridion_Discovery' `
                                              -dbUser 'TridionBrokerUser' `
                                              -dbPassword 'Tridion1' `
+                                             -licenseLocation $licenseLocation `
                                              -stripComments
 
 & "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("Discovery\config\logback.xml")) `
@@ -54,11 +57,12 @@ Copy-Item -Recurse "C:\Users\NetAdmin\Downloads\SDL Web 8.5\Content Delivery\rol
 & "$ScriptPath\Merge-DiscoveryStorage.ps1" -discoveryStorageConfig (resolve-path ("StagingDiscovery/config/cd_storage_conf.xml")) `
                                              -discoveryHost 'localhost' `
                                              -dbType 'MSSQL' `
-                                             -dbHost 'localhost' `
+                                             -dbHost 'sdlcd' `
                                              -dbPort 1433 `
                                              -dbName 'Tridion_Discovery_Staging' `
                                              -dbUser 'TridionBrokerUser' `
                                              -dbPassword 'Tridion1' `
+                                             -licenseLocation $licenseLocation `
                                              -stripComments
 
 & "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("StagingDiscovery\config\logback.xml")) `
