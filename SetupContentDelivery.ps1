@@ -43,7 +43,6 @@ Copy-Item -Recurse "C:\Users\NetAdmin\Downloads\SDL Web 8.5\Content Delivery\rol
 & "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("Discovery\config\logback.xml")) `
                                   -logFolder "$LoggingOutputPath\Discovery"
 
-#TODO - read Rick's comment about non-standard ports here https://tridion.stackexchange.com/a/14431/129
 @'
 $scriptPath = Split-Path $script:MyInvocation.MyCommand.Path
 & $scriptPath\installService.ps1 --Name=SDLWebDiscoveryService --Description="SDL Web Discovery Service" `
@@ -54,8 +53,9 @@ $scriptPath = Split-Path $script:MyInvocation.MyCommand.Path
 
 
 Copy-Item -Recurse "C:\Users\NetAdmin\Downloads\SDL Web 8.5\Content Delivery\roles\discovery\standalone" "StagingDiscovery"
-& "$ScriptPath\Merge-DiscoveryStorage.ps1" -discoveryStorageConfig (resolve-path ("StagingDiscovery/config/cd_storage_conf.xml")) `
+& "$ScriptPath\Merge-DiscoveryStorage.ps1" -discoveryStorageConfig (resolve-path ("StagingDiscovery\config\cd_storage_conf.xml")) `
                                              -discoveryHost 'localhost' `
+                                             -discoveryPort 9082 `
                                              -dbType 'MSSQL' `
                                              -dbHost 'sdlcd' `
                                              -dbPort 1433 `
