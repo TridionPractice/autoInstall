@@ -1,9 +1,7 @@
 param (
     [ValidateScript({Test-Path -PathType Leaf -Path $_})]
-    [Parameter(Mandatory=$true, HelpMessage='The location of the storage config for your discovery service.')]
-    $discoveryStorageConfig, 
-    $discoveryHost,
-    $discoveryPort=8082, 
+    [Parameter(Mandatory=$true, HelpMessage='The location of the storage config.')]
+    $storageConfig, 
     [ValidateSet('MSSQL','ORACLESQL')]
     $dbType,
     $dbHost, 
@@ -21,7 +19,7 @@ Add-Type -Assembly System.Xml.Linq
 
 $scriptPath = Split-Path $script:MyInvocation.MyCommand.Path
 
-$config = [Xml.Linq.XDocument]::Load($discoveryStorageConfig)
+$config = [Xml.Linq.XDocument]::Load($storageConfig)
 $defaultDb = $config.Element('Configuration').Element('Global').Element('Storages').Elements('Storage') | ? {$_.Attribute("Id").Value -eq 'defaultdb'}
 
 $newStorage = & "$scriptPath\CreateDatabaseStorageXElement.ps1" -ServerName $dbHost `
