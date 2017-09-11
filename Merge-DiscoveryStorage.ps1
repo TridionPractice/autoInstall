@@ -19,13 +19,6 @@ param (
 
 Add-Type -Assembly System.Xml.Linq
 
-function AddPropertyElement($parent, $name , $value){
-    $property = $parent.OwnerDocument.CreateElement("Property")
-    $property.SetAttribute("Name", $name)
-    $property.SetAttribute("Value", $value)
-    $parent.AppendChild($property)
-}
-
 $scriptPath = Split-Path $script:MyInvocation.MyCommand.Path
 
 $config = [Xml.Linq.XDocument]::Load($discoveryStorageConfig)
