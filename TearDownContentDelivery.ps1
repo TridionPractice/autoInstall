@@ -1,6 +1,7 @@
 ﻿param(
 
-[string]$ServicesDirectoryPath='C:\SDLServices'
+[string]$ServicesDirectoryPath='C:\SDLServices',
+[string]$LoggingOutputPath='C:\SDLServiceLogs'
 
 )
 
@@ -11,3 +12,4 @@ gci -Recurse $ServicesDirectoryPath -Include uninstallService.ps1 | % {
 }
 
 gci $ServicesDirectoryPath | rm -r
+gci $LoggingOutputPath | rm -r

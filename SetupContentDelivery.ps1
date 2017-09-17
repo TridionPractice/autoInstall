@@ -1,9 +1,14 @@
-﻿param(
+﻿# The general idea with this script is that it should be mostly 'declarative'. In other words
+# the choices you want to make about how your CD should be set up belong here. Detailed config-hacking
+# grunge belongs in some more detailed script or other. 
+
+param(
 [ValidateScript({Test-Path $_ -PathType 'Container'})] 
 [string]$InstallerDirectoryPath='C:\Users\NetAdmin\Downloads\SDL Web 8.5',
 
 [string]$ServicesDirectoryPath='C:\SDLServices', 
 [string]$LoggingOutputPath='C:\SDLServiceLogs',
+[string]$DeployerStorage='C:\SDLDeployerStorage',
 [ValidateScript({Test-Path -PathType Leaf -Path $_})]
 $licenseLocation='C:\SdlLicenses\cd_licenses.xml', 
 $databaseServer='localhost'
@@ -98,6 +103,31 @@ $deployerStorageConfig = (resolve-path ("Deployer\config\cd_storage_conf.xml"))
                                              -licenseLocation $licenseLocation `
                                              -stripComments
 
+$deployerConfig = (resolve-path ("Deployer\config\deployer-conf.xml"))
+& "$ScriptPath\Merge-Deployer.ps1" -deployerConfig $deployerConfig `
+                                             -dbAdapter 'mssql' `
+                                             -dbHost $databaseServer `
+                                             -dbPort 1433 `
+                                             -dbName 'Tridion_Deployer_State' `
+                                             -dbUser 'TridionBrokerUser' `
+                                             -dbPassword 'Tridion1' `
+                                             -binaryStoragePath "$DeployerStorage\Live\Binary" `
+                                             -queuePath "$DeployerStorage\Live\Queue" `
+                                             -stripComments
+
+
+& "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("Deployer\config\logback.xml")) `
+                                  -logFolder "$LoggingOutputPath\Deployer"
+
+@'
+$scriptPath = Split-Path $script:MyInvocation.MyCommand.Path
+& $scriptPath\installService.ps1 --Name=SDLWebDeployerService --Description="SDL Web Deployer Service" `
+                                 --DisplayName="SDL Web Deployer Service" --server.port=8084 
+'@ > .\Deployer\bin\Invoke-InstallService.ps1
+
+& .\Deployer\bin\Invoke-InstallService.ps1
+
+# STAGING DEPLOYER 
 Copy-Item -Recurse "$InstallerDirectoryPath\Content Delivery\roles\deployer\deployer-combined\standalone" "StagingDeployer"
 $stagingDeployerStorageConfig = (resolve-path ("StagingDeployer\config\cd_storage_conf.xml"))
 & "$ScriptPath\Merge-Storage.ps1" -storageConfig $stagingDeployerStorageConfig `
@@ -109,3 +139,26 @@ $stagingDeployerStorageConfig = (resolve-path ("StagingDeployer\config\cd_storag
                                              -dbPassword 'Tridion1' `
                                              -licenseLocation $licenseLocation `
                                              -stripComments
+
+$stagingDeployerConfig = (resolve-path ("StagingDeployer\config\deployer-conf.xml"))
+& "$ScriptPath\Merge-Deployer.ps1" -deployerConfig $stagingDeployerConfig `
+                                             -dbAdapter 'mssql' `
+                                             -dbHost $databaseServer `
+                                             -dbPort 1433 `
+                                             -dbName 'Tridion_Deployer_State_Staging' `
+                                             -dbUser 'TridionBrokerUser' `
+                                             -dbPassword 'Tridion1' `
+                                             -binaryStoragePath "$DeployerStorage\Staging\Binary" `
+                                             -queuePath "$DeployerStorage\Staging\Queue" `
+                                             -stripComments
+
+& "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("StagingDeployer\config\logback.xml")) `
+                                  -logFolder "$LoggingOutputPath\StagingDeployer"
+
+@'
+$scriptPath = Split-Path $script:MyInvocation.MyCommand.Path
+& $scriptPath\installService.ps1 --Name=SDLWebStagingDeployerService --Description="SDL Web Staging Deployer Service" `
+                                 --DisplayName="SDL Web Staging Deployer Service" --server.port=9084 
+'@ > .\StagingDeployer\bin\Invoke-InstallService.ps1
+
+& .\StagingDeployer\bin\Invoke-InstallService.ps1

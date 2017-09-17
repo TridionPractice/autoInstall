@@ -50,4 +50,4 @@
     ($storageElement.Storage.DataSource.Property | ? {$_.Name -eq "user"}).SetAttribute("Value", $DatabaseUserName)
     ($storageElement.Storage.DataSource.Property | ? {$_.Name -eq "password"}).SetAttribute("Value", $DatabasePassword)
     ($storageElement.Storage.DataSource.Property | ? {$_.Name -eq "portNumber"}).SetAttribute("Value", $DatabasePortNumber)
-    $storageElement
+    $storageElement.DocumentElement

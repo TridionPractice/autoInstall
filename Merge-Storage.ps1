@@ -2,6 +2,7 @@ param (
     [ValidateScript({Test-Path -PathType Leaf -Path $_})]
     [Parameter(Mandatory=$true, HelpMessage='The location of the storage config.')]
     $storageConfig, 
+    $storageToReplace="/Configuration/Global/Storages/Storage[@Id='defaultdb']",
     [ValidateSet('MSSQL','ORACLESQL')]
     $dbType,
     $dbHost, 
@@ -15,42 +16,30 @@ param (
     [switch]$stripComments
 )
 
-Add-Type -Assembly System.Xml.Linq
-
 $scriptPath = Split-Path $script:MyInvocation.MyCommand.Path
 
-$config = [Xml.Linq.XDocument]::Load($storageConfig)
-$defaultDb = $config.Element('Configuration').Element('Global').Element('Storages').Elements('Storage') | ? {$_.Attribute("Id").Value -eq 'defaultdb'}
+$config = [xml](gc $storageConfig)
+$defaultDb = (Select-Xml -Xml $config -XPath $StorageToReplace).Node
 
-$newStorage = & "$scriptPath\CreateDatabaseStorageXElement.ps1" -ServerName $dbHost `
+$newStorage = & "$scriptPath\CreateDatabaseStorageXmlElement.ps1" -ServerName $dbHost `
                                                                 -DatabaseUserName $dbUser `
                                                                 -DatabasePassword $dbPassword `
                                                                 -DatabasePortNumber $dbPort `
                                                                 -DatabaseName $dbName
 
-$defaultDb.replaceWith($newStorage)
+$defaultDb.ParentNode.replaceChild($defaultDb.OwnerDocument.ImportNode($newStorage, $true), $defaultDb) 
 
-$reslashedLicenseLocation = $licenseLocation -replace '\\','/'
-$licenseElement = [Xml.Linq.XElement]::Parse("<License Location='$reslashedLicenseLocation'/>")
-$config.Element('Configuration').Element('ItemTypes').AddAfterSelf($licenseElement)`
-if ($usePlaceHolders) {
-    $discoveryServiceUri = "`$`{discoveryurl:-http://$discoveryHost`:$discoveryPort/discovery.svc`}"  
-    $tokenServiceUri =    "`$`{tokenurl:-http://$discoveryHost`:$discoveryPort/token.svc`}"  
-} else {
-    $discoveryServiceUri = "http://$discoveryHost`:$discoveryPort/discovery.svc"    
-    $tokenServiceUri =    "http://$discoveryHost`:$discoveryPort/token.svc"  
-}
-
-$configRepository = $config.Element('Configuration').Element('ConfigRepository')
-$configRepository.setAttributeValue("ServiceUri", $discoveryServiceUri)
-$configRepository.setAttributeValue("TokenServiceUrl", $tokenServiceUri)
-$tokenRole =$configRepository.Element('Roles').Elements('Role') | ? {$_.Attribute("Name").Value -eq 'TokenServiceCapability'}
-$tokenRole.setAttributeValue("Url", $tokenServiceUri)
-
-
+if ($licenseLocation) {
+    $itemTypesElement = (Select-Xml -Xml $config -XPath "/Configuration/ItemTypes").Node
+    $reslashedLicenseLocation = $licenseLocation -replace '\\','/'
+    $licenseElement = $itemTypesElement.OwnerDocument.CreateElement('License')
+    $licenseElement.SetAttribute('Location', $reslashedLicenseLocation)    $itemTypesElement.ParentNode.InsertAfter($licenseElement, $itemTypesElement)}
 if ($stripComments) {
-	$comments = $config.DescendantNodes() | ? {$_.NodeType -eq 'Comment'} 
-	$comments | % {$_.Remove()}
+    Select-Xml -Xml $config -XPath '//comment()' | % {$_.Node.ParentNode.removeChild($_.Node)} | Out-Null
 }
 
-$config.Save($discoveryStorageConfig) 
+#avoid writing a BOM which might upset the service
+$encoding = new-object System.Text.UTF8Encoding $false
+$writer = new-object System.IO.StreamWriter($storageConfig,$false,$encoding)
+$config.Save($writer)
+$writer.Close()
