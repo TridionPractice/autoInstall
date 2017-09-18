@@ -2,6 +2,8 @@
 # the choices you want to make about how your CD should be set up belong here. Detailed config-hacking
 # grunge belongs in some more detailed script or other. 
 
+# Port numbers: default for Live. For staging add 1000 
+
 param(
 [ValidateScript({Test-Path $_ -PathType 'Container'})] 
 [string]$InstallerDirectoryPath='C:\Users\NetAdmin\Downloads\SDL Web 8.5',
@@ -113,6 +115,7 @@ $deployerConfig = (resolve-path ("Deployer\config\deployer-conf.xml"))
                                              -dbPassword 'Tridion1' `
                                              -binaryStoragePath "$DeployerStorage\Live\Binary" `
                                              -queuePath "$DeployerStorage\Live\Queue" `
+                                             -licenseLocation $licenseLocation `
                                              -stripComments
 
 
@@ -150,6 +153,7 @@ $stagingDeployerConfig = (resolve-path ("StagingDeployer\config\deployer-conf.xm
                                              -dbPassword 'Tridion1' `
                                              -binaryStoragePath "$DeployerStorage\Staging\Binary" `
                                              -queuePath "$DeployerStorage\Staging\Queue" `
+                                             -licenseLocation $licenseLocation `
                                              -stripComments
 
 & "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("StagingDeployer\config\logback.xml")) `
@@ -162,3 +166,32 @@ $scriptPath = Split-Path $script:MyInvocation.MyCommand.Path
 '@ > .\StagingDeployer\bin\Invoke-InstallService.ps1
 
 & .\StagingDeployer\bin\Invoke-InstallService.ps1
+
+# Live Content service (therefore not Session-Enabled)
+Copy-Item -Recurse "$InstallerDirectoryPath\Content Delivery\roles\content\standalone" "Content"
+$contentStorageConfig = (resolve-path ("Content\config\cd_storage_conf.xml"))
+& "$ScriptPath\Merge-Storage.ps1" -storageConfig $contentStorageConfig `
+                                             -dbType 'MSSQL' `
+                                             -dbHost $databaseServer `
+                                             -dbPort 1433 `
+                                             -dbName 'Tridion_Broker' `
+                                             -dbUser 'TridionBrokerUser' `
+                                             -dbPassword 'Tridion1' `
+                                             -licenseLocation $licenseLocation `
+                                             -stripComments
+
+& "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $contentStorageConfig `
+                                                 -roleName 'ContentServiceCapability' `
+                                                 -roleUrl 'http://localhost:8081/content.svc'
+
+& "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("Content\config\logback.xml")) `
+                                  -logFolder "$LoggingOutputPath\Content"
+
+@'
+$scriptPath = Split-Path $script:MyInvocation.MyCommand.Path
+& $scriptPath\installService.ps1 --Name=SDLWebContentService --Description="SDL Web Content Service" `
+                                 --DisplayName="SDL Web Content Service" --server.port=8081 
+'@ > .\Content\bin\Invoke-InstallService.ps1
+
+& .\Content\bin\Invoke-InstallService.ps1
+

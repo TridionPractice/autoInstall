@@ -11,6 +11,8 @@ param (
     $dbPassword,
     $binaryStoragePath,     
     $queuePath,
+    [ValidateScript({Test-Path -PathType Leaf -Path $_})]
+    $licenseLocation,
     [switch]$stripComments
 )
 
@@ -44,7 +46,11 @@ $prepareQueueDestinationElement.SetAttribute("Value", "$queuePath/Prepare")
 (Select-Xml -Xml $stateStorageElement -XPath "Property[@Name='user']").Node.SetAttribute('Value',$dbUser)
 (Select-Xml -Xml $stateStorageElement -XPath "Property[@Name='password']").Node.SetAttribute('Value',$dbPassword)
 
-
+if ($licenseLocation) {
+    $deployerElement = (Select-Xml -Xml $config -XPath "/Deployer").Node
+    $reslashedLicenseLocation = $licenseLocation -replace '\\','/'
+    $licenseElement = $deployerElement.OwnerDocument.CreateElement('License')
+    $licenseElement.SetAttribute('Path', $reslashedLicenseLocation)    $deployerElement.appendChild($licenseElement)}
 
 if ($stripComments) {
     Select-Xml -Xml $config -XPath '//comment()' | % {$_.Node.ParentNode.removeChild($_.Node)} | Out-Null
