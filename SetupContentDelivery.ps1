@@ -180,7 +180,7 @@ $contentStorageConfig = (resolve-path ("Content\config\cd_storage_conf.xml"))
                                              -licenseLocation $licenseLocation `
                                              -stripComments
 
-& "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $contentStorageConfig `
+& "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $discoveryStorageConfig `
                                                  -roleName 'ContentServiceCapability' `
                                                  -roleUrl 'http://localhost:8081/content.svc'
 
