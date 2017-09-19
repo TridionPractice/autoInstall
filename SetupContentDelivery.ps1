@@ -195,3 +195,35 @@ $scriptPath = Split-Path $script:MyInvocation.MyCommand.Path
 
 & .\Content\bin\Invoke-InstallService.ps1
 
+# Staging Content service (therefore Session-Enabled)
+Copy-Item -Recurse "$InstallerDirectoryPath\Content Delivery\roles\session\service\standalone" "StagingContent"
+$stagingContentStorageConfig = (resolve-path ("StagingContent\config\cd_storage_conf.xml"))
+
+& "$ScriptPath\Merge-Storage.ps1" -storageConfig $stagingContentStorageConfig `
+                                             -dbType 'MSSQL' `
+                                             -dbHost $databaseServer `
+                                             -dbPort 1433 `
+                                             -dbName 'Tridion_Broker_Staging' `
+                                             -dbUser 'TridionBrokerUser' `
+                                             -dbPassword 'Tridion1' `
+                                             -licenseLocation $licenseLocation `
+                                             -stripComments
+
+& "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $discoveryStorageConfig `
+                                                 -roleName 'ContentServiceCapability' `
+                                                 -roleUrl 'http://localhost:9081/content.svc'
+
+& "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("StagingContent\config\logback.xml")) `
+                                  -logFolder "$LoggingOutputPath\StagingContent"
+
+@'
+$scriptPath = Split-Path $script:MyInvocation.MyCommand.Path
+& $scriptPath\installService.ps1 --Name=SDLWebStagingContentService --Description="SDL Web Staging Content Service" `
+                                 --DisplayName="SDL Web Staging Content Service" --server.port=9081 
+'@ > .\StagingContent\bin\Invoke-InstallService.ps1
+
+& .\StagingContent\bin\Invoke-InstallService.ps1
+
+#Preview
+Copy-Item -Recurse "$InstallerDirectoryPath\Content Delivery\roles\preview\standalone" "Preview"
+$previewStorageConfig = (resolve-path ("Preview\config\cd_storage_conf.xml"))
