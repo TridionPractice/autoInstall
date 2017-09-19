@@ -1,3 +1,5 @@
+    #This is now redundant
+    
     param(
         [parameter(Mandatory=$True)]   
         [string]$ServerName , 

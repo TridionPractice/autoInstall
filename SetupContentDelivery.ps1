@@ -227,3 +227,42 @@ $scriptPath = Split-Path $script:MyInvocation.MyCommand.Path
 #Preview
 Copy-Item -Recurse "$InstallerDirectoryPath\Content Delivery\roles\preview\standalone" "Preview"
 $previewStorageConfig = (resolve-path ("Preview\config\cd_storage_conf.xml"))
+
+# First fix up the normal storage
+& "$ScriptPath\Merge-Storage.ps1" -storageConfig $previewStorageConfig `
+                                             -dbType 'MSSQL' `
+                                             -dbHost $databaseServer `
+                                             -dbPort 1433 `
+                                             -dbName 'Tridion_Broker_Staging' `
+                                             -dbUser 'TridionBrokerUser' `
+                                             -dbPassword 'Tridion1' `
+                                             -licenseLocation $licenseLocation `
+                                             -stripComments
+
+# Then call the same script again to do the preview storage in the wrapper
+& "$ScriptPath\Merge-Storage.ps1" -storageConfig $previewStorageConfig `
+                                             -storageToUpdate "/Configuration/Global/Storages/Wrappers/Wrapper[@Name='SessionWrapper]/Storage[@Id=''sessiondb']" `
+                                             -dbType 'MSSQL' `
+                                             -dbHost $databaseServer `
+                                             -dbPort 1433 `
+                                             -dbName 'Tridion_Preview' `
+                                             -dbUser 'TridionBrokerUser' `
+                                             -dbPassword 'Tridion1' 
+
+& "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $discoveryStorageConfig `
+                                                 -roleName 'PreviewWebServiceCapability' `
+                                                 -roleUrl 'http://localhost:8083/ws/preview.svc'
+
+& "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("Preview\config\logback.xml")) `
+                                  -logFolder "$LoggingOutputPath\Preview"
+
+@'
+$scriptPath = Split-Path $script:MyInvocation.MyCommand.Path
+& $scriptPath\installService.ps1 --Name=SDLWebSessionPreviewService --Description="SDL Web Session Preview Service" `
+                                 --DisplayName="SDL Web Session Preview Service" --server.port=8083 
+'@ > .\Preview\bin\Invoke-InstallService.ps1
+
+& .\Preview\bin\Invoke-InstallService.ps1
+
+
+

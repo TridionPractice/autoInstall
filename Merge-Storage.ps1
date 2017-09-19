@@ -2,7 +2,7 @@ param (
     [ValidateScript({Test-Path -PathType Leaf -Path $_})]
     [Parameter(Mandatory=$true, HelpMessage='The location of the storage config.')]
     $storageConfig, 
-    $storageToReplace="/Configuration/Global/Storages/Storage[@Id='defaultdb']",
+    $storageToUpdate="/Configuration/Global/Storages/Storage[@Id='defaultdb']",
     [ValidateSet('MSSQL','ORACLESQL')]
     $dbType,
     $dbHost, 
@@ -19,15 +19,23 @@ param (
 $scriptPath = Split-Path $script:MyInvocation.MyCommand.Path
 
 $config = [xml](gc $storageConfig)
-$defaultDb = (Select-Xml -Xml $config -XPath $StorageToReplace).Node
 
-$newStorage = & "$scriptPath\CreateDatabaseStorageXmlElement.ps1" -ServerName $dbHost `
-                                                                -DatabaseUserName $dbUser `
-                                                                -DatabasePassword $dbPassword `
-                                                                -DatabasePortNumber $dbPort `
-                                                                -DatabaseName $dbName
+$storageElement = (Select-Xml -Xml $config -XPath $storageToUpdate).Node
 
-$defaultDb.ParentNode.replaceChild($defaultDb.OwnerDocument.ImportNode($newStorage, $true), $defaultDb) 
+switch ($dbType) {
+    'MSSQL' {
+        $storageElement.DataSource.SetAttribute('Class', 'com.microsoft.sqlserver.jdbc.SQLServerDataSource')
+    }
+    'ORACLESQL' {
+        $storageElement.DataSource.SetAttribute('Class', 'oracle.jdbc.pool.OracleDataSource')
+    }
+}
+
+(Select-Xml -Xml $storageElement -XPath "DataSource/Property[@Name='serverName']").Node.SetAttribute('Value', $dbhost)
+(Select-Xml -Xml $storageElement -XPath "DataSource/Property[@Name='portNumber']").Node.SetAttribute('Value', $dbport)
+(Select-Xml -Xml $storageElement -XPath "DataSource/Property[@Name='databaseName']").Node.SetAttribute('Value', $dbName)
+(Select-Xml -Xml $storageElement -XPath "DataSource/Property[@Name='user']").Node.SetAttribute('Value', $dbUser)
+(Select-Xml -Xml $storageElement -XPath "DataSource/Property[@Name='password']").Node.SetAttribute('Value', $dbPassword)
 
 if ($licenseLocation) {
     $itemTypesElement = (Select-Xml -Xml $config -XPath "/Configuration/ItemTypes").Node
