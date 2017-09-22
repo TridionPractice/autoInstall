@@ -241,7 +241,7 @@ $previewStorageConfig = (resolve-path ("Preview\config\cd_storage_conf.xml"))
 
 # Then call the same script again to do the preview storage in the wrapper
 & "$ScriptPath\Merge-Storage.ps1" -storageConfig $previewStorageConfig `
-                                             -storageToUpdate "/Configuration/Global/Storages/Wrappers/Wrapper[@Name='SessionWrapper]/Storage[@Id=''sessiondb']" `
+                                             -storageToUpdate "/Configuration/Global/Storages/Wrappers/Wrapper[@Name='SessionWrapper]/Storage[@Id='sessiondb']" `
                                              -dbType 'MSSQL' `
                                              -dbHost $databaseServer `
                                              -dbPort 1433 `
