@@ -28,8 +28,10 @@ switch ($dbType) {
     }
     'ORACLESQL' {
         $storageElement.DataSource.SetAttribute('Class', 'oracle.jdbc.pool.OracleDataSource')
+        
     }
 }
+$storageElement.SetAttribute('dialect', $dbType)
 
 (Select-Xml -Xml $storageElement -XPath "DataSource/Property[@Name='serverName']").Node.SetAttribute('Value', $dbhost)
 (Select-Xml -Xml $storageElement -XPath "DataSource/Property[@Name='portNumber']").Node.SetAttribute('Value', $dbport)

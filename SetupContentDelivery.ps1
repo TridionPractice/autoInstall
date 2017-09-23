@@ -209,6 +209,15 @@ $stagingContentStorageConfig = (resolve-path ("StagingContent\config\cd_storage_
                                              -licenseLocation $licenseLocation `
                                              -stripComments
 
+& "$ScriptPath\Merge-Storage.ps1" -storageConfig $stagingContentStorageConfig `
+                                             -storageToUpdate "/Configuration/Global/Storages/Wrappers/Wrapper[@Name='SessionWrapper']/Storage[@Id='sessionDb']" `
+                                             -dbType 'MSSQL' `
+                                             -dbHost $databaseServer `
+                                             -dbPort 1433 `
+                                             -dbName 'Tridion_Preview' `
+                                             -dbUser 'TridionBrokerUser' `
+                                             -dbPassword 'Tridion1' 
+
 & "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $discoveryStorageConfig `
                                                  -roleName 'ContentServiceCapability' `
                                                  -roleUrl 'http://localhost:9081/content.svc'
@@ -241,7 +250,7 @@ $previewStorageConfig = (resolve-path ("Preview\config\cd_storage_conf.xml"))
 
 # Then call the same script again to do the preview storage in the wrapper
 & "$ScriptPath\Merge-Storage.ps1" -storageConfig $previewStorageConfig `
-                                             -storageToUpdate "/Configuration/Global/Storages/Wrappers/Wrapper[@Name='SessionWrapper]/Storage[@Id='sessiondb']" `
+                                             -storageToUpdate "/Configuration/Global/Storages/Wrappers/Wrapper[@Name='SessionWrapper']/Storage[@Id='sessionDb']" `
                                              -dbType 'MSSQL' `
                                              -dbHost $databaseServer `
                                              -dbPort 1433 `
