@@ -5,6 +5,7 @@ param (
     $roleName,
     $rolePlaceHolder, 
     $roleUrl,
+    [hashtable]$roleProperties,
     [switch]$usePlaceholders=$false
 )
 
@@ -13,10 +14,12 @@ $scriptPath = Split-Path $script:MyInvocation.MyCommand.Path
 
 $config = [xml](gc $storageConfig)
 
-if ($usePlaceHolders -and $rolePlaceHolder) {
-    $roleUrl = "`$`{$rolePlaceHolder`:-$roleUrl`}"      
-} else {
-    $roleUrl = $roleUrlParam    
+if ($roleUrl) {
+    if ($usePlaceHolders -and $rolePlaceHolder) {
+        $roleUrl = "`$`{$rolePlaceHolder`:-$roleUrl`}"      
+    } else {
+        $roleUrl = $roleUrl    
+    }
 }
 
 # <Role Name="ContentServiceCapability" Url="${contenturl:-http://localhost:8081/content.svc}"/>
@@ -27,8 +30,23 @@ if ($role) {
     $role.setAttribute("Url", $roleUrl)
 } else {
     $role = $roles.OwnerDocument.CreateElement('Role')
+    $roles.AppendChild($role)
     $role.SetAttribute("Name", $roleName)
-    $role.SetAttribute("Url", $roleUrl)
+    if ($roleUrl) {
+        $role.SetAttribute("Url", $roleUrl)
+    }
+}
+
+#      <Role Name="DeployerCapability" Url="${deployerurl:-http://localhost:8084/httpupload}">
+#        <Property Name="encoding" Value="UTF-8" />
+#      </Role>
+if ($roleProperties) {
+    $roleProperties.Keys | % {
+        $property = $role.OwnerDocument.CreateElement('Property') 
+        $role.AppendChild($property)
+        $property.SetAttribute("Name", $_)
+        $property.SetAttribute("Value", $roleProperties.Item($_))
+    }
 }
 
 $config.Save($storageConfig) 

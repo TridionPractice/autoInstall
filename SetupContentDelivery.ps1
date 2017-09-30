@@ -6,7 +6,7 @@
 
 param(
 [ValidateScript({Test-Path $_ -PathType 'Container'})] 
-[string]$InstallerDirectoryPath='C:\Users\NetAdmin\Downloads\SDL Web 8.5',
+[string]$InstallerDirectoryPath='C:\Users\Administrator.WEB85\Downloads\SDL Web 8.5',
 
 [string]$ServicesDirectoryPath='C:\SDLServices', 
 [string]$LoggingOutputPath='C:\SDLServiceLogs',
@@ -35,6 +35,7 @@ set-location $ServicesDirectory
 
 #  DISCOVERY SERVICE - LIVE
 Copy-Item -Recurse "$InstallerDirectoryPath\Content Delivery\roles\discovery\standalone" "Discovery"
+Copy-Item "$InstallerDirectoryPath\Content Delivery\roles\discovery\registration\discovery-registration.jar" "Discovery\config"
 $discoveryStorageConfig = (resolve-path ("Discovery\config\cd_storage_conf.xml"))
 & "$ScriptPath\Merge-Storage.ps1" -storageConfig $discoveryStorageConfig `
                                              -dbType 'MSSQL' `
@@ -63,6 +64,7 @@ $scriptPath = Split-Path $script:MyInvocation.MyCommand.Path
 
 #  DISCOVERY SERVICE - STAGING 
 Copy-Item -Recurse "$InstallerDirectoryPath\Content Delivery\roles\discovery\standalone" "StagingDiscovery"
+Copy-Item "$InstallerDirectoryPath\Content Delivery\roles\discovery\registration\discovery-registration.jar" "StagingDiscovery\config"
 $stagingDiscoveryStorageConfig = (resolve-path ("StagingDiscovery\config\cd_storage_conf.xml"))
 & "$ScriptPath\Merge-Storage.ps1" -storageConfig $stagingDiscoveryStorageConfig `
                                              -dbType 'MSSQL' `
@@ -119,6 +121,15 @@ $deployerConfig = (resolve-path ("Deployer\config\deployer-conf.xml"))
                                              -stripComments
 
 
+#      <Role Name="DeployerCapability" Url="${deployerurl:-http://localhost:8084/httpupload}">
+#        <Property Name="encoding" Value="UTF-8" />
+#      </Role>
+& "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $discoveryStorageConfig `
+                                                 -roleName 'DeployerCapability' `
+                                                 -roleUrl 'http://localhost:8084/httpupload' `
+                                                 -roleProperties @{encoding='UTF-8'}
+
+
 & "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("Deployer\config\logback.xml")) `
                                   -logFolder "$LoggingOutputPath\Deployer"
 
@@ -156,6 +167,12 @@ $stagingDeployerConfig = (resolve-path ("StagingDeployer\config\deployer-conf.xm
                                              -licenseLocation $licenseLocation `
                                              -stripComments
 
+& "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $stagingDiscoveryStorageConfig `
+                                                 -roleName 'DeployerCapability' `
+                                                 -roleUrl 'http://localhost:9084/httpupload' `
+                                                 -roleProperties @{encoding='UTF-8'}
+
+
 & "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("StagingDeployer\config\logback.xml")) `
                                   -logFolder "$LoggingOutputPath\StagingDeployer"
 
@@ -183,6 +200,9 @@ $contentStorageConfig = (resolve-path ("Content\config\cd_storage_conf.xml"))
 & "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $discoveryStorageConfig `
                                                  -roleName 'ContentServiceCapability' `
                                                  -roleUrl 'http://localhost:8081/content.svc'
+
+& "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $discoveryStorageConfig `
+                                                 -roleName 'WebCapability'                                                  
 
 & "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("Content\config\logback.xml")) `
                                   -logFolder "$LoggingOutputPath\Content"
@@ -218,9 +238,12 @@ $stagingContentStorageConfig = (resolve-path ("StagingContent\config\cd_storage_
                                              -dbUser 'TridionBrokerUser' `
                                              -dbPassword 'Tridion1' 
 
-& "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $discoveryStorageConfig `
+& "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $stagingDiscoveryStorageConfig `
                                                  -roleName 'ContentServiceCapability' `
                                                  -roleUrl 'http://localhost:9081/content.svc'
+
+& "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $stagingDiscoveryStorageConfig `
+                                                 -roleName 'WebCapability' 
 
 & "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("StagingContent\config\logback.xml")) `
                                   -logFolder "$LoggingOutputPath\StagingContent"
@@ -258,7 +281,7 @@ $previewStorageConfig = (resolve-path ("Preview\config\cd_storage_conf.xml"))
                                              -dbUser 'TridionBrokerUser' `
                                              -dbPassword 'Tridion1' 
 
-& "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $discoveryStorageConfig `
+& "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $stagingDiscoveryStorageConfig `
                                                  -roleName 'PreviewWebServiceCapability' `
                                                  -roleUrl 'http://localhost:8083/ws/preview.svc'
 
@@ -272,6 +295,15 @@ $scriptPath = Split-Path $script:MyInvocation.MyCommand.Path
 '@ > .\Preview\bin\Invoke-InstallService.ps1
 
 & .\Preview\bin\Invoke-InstallService.ps1
+
+pushd StagingDiscovery\config
+& java -jar discovery-registration.jar update 
+popd
+
+pushd Discovery\config
+& java -jar discovery-registration.jar update 
+popd
+
 
 
 
