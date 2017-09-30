@@ -1,0 +1,1 @@
+﻿Add-TtmCdEnvironment -Id stagingEnvironment -DiscoveryEndpointUrl http://localhost:8082/discovery.svc
