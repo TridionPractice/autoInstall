@@ -4,6 +4,8 @@
 
 # Port numbers: default for Live. For staging add 1000 
 
+# REVIEW: Staging services are running with different names. The uninstallService.ps1 scripts /do/ look for serviceName.txt. Is that robust enough?
+
 param(
 [ValidateScript({Test-Path $_ -PathType 'Container'})] 
 [string]$InstallerDirectoryPath='C:\Users\Administrator.WEB85\Downloads\SDL Web 8.5',
