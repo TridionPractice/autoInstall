@@ -4,6 +4,7 @@
 
 # Port numbers: default for Live. For staging add 1000 
 
+# TODO: Set up the DependsOn relationships
 # REVIEW: Staging services are running with different names. The uninstallService.ps1 scripts /do/ look for serviceName.txt. Is that robust enough?
 
 param(
