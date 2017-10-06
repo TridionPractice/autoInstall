@@ -7,7 +7,8 @@
 [string]$DeployerStorage='C:\SDLDeployerStorage',
 [ValidateScript({Test-Path -PathType Leaf -Path $_})]
 $licenseLocation='C:\SdlLicenses\cd_licenses.xml', 
-$databaseServer='localhost'
+$databaseServer='localhost',
+$domainName='sdlweb'
 
 )
 
@@ -31,7 +32,7 @@ Copy-Item -Recurse "$InstallerDirectoryPath\cis\dxa-model-service\standalone" "D
 $discoveryStorageConfig = (resolve-path ("Discovery\config\cd_storage_conf.xml"))
 & "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $discoveryStorageConfig `
                                                  -roleName 'ContentServiceCapability' `
-                                                 -roleProperties @{'dxa-model-service'='http://localhost:8998'}
+                                                 -roleProperties @{'dxa-model-service'="http://${$domainName}:8998"}
 
 & "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("DxaModel\config\logback.xml")) `
                                   -logFolder "$LoggingOutputPath\DxaModel"
@@ -53,7 +54,7 @@ Copy-Item -Recurse "$InstallerDirectoryPath\cis\dxa-model-service\standalone" "S
 $stagingDiscoveryStorageConfig = (resolve-path ("StagingDiscovery\config\cd_storage_conf.xml"))
 & "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $stagingDiscoveryStorageConfig `
                                                  -roleName 'ContentServiceCapability' `
-                                                 -roleProperties @{'dxa-model-service'='http://localhost:9998'}
+                                                 -roleProperties @{'dxa-model-service'="http://${$domainName}:9998"}
 
 
 & "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("StagingDxaModel\config\logback.xml")) `

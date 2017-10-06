@@ -16,7 +16,9 @@ param(
 [string]$DeployerStorage='C:\SDLDeployerStorage',
 [ValidateScript({Test-Path -PathType Leaf -Path $_})]
 $licenseLocation='C:\SdlLicenses\cd_licenses.xml', 
-$databaseServer='localhost'
+$databaseServer='localhost',
+[Parameter(Mandatory=$false, HelpMessage='The name clients will use to find the services')]
+$domainName='sdlweb'
 
 )
 
@@ -51,7 +53,7 @@ $discoveryStorageConfig = (resolve-path ("Discovery\config\cd_storage_conf.xml")
                                              -stripComments
 
 & "$ScriptPath\Merge-ConfigRepository.ps1" -storageConfig $discoveryStorageConfig `
-                                             -discoveryHost 'localhost' 
+                                             -discoveryHost $domainName
 
 
 & "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("Discovery\config\logback.xml")) `
@@ -80,7 +82,7 @@ $stagingDiscoveryStorageConfig = (resolve-path ("StagingDiscovery\config\cd_stor
                                              -stripComments
 
 & "$ScriptPath\Merge-ConfigRepository.ps1" -storageConfig $stagingDiscoveryStorageConfig `
-                                             -discoveryHost 'localhost' `
+                                             -discoveryHost $domainName `
                                              -discoveryPort 9082 `
 
 & "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("StagingDiscovery\config\logback.xml")) `
@@ -129,7 +131,7 @@ $deployerConfig = (resolve-path ("Deployer\config\deployer-conf.xml"))
 #      </Role>
 & "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $discoveryStorageConfig `
                                                  -roleName 'DeployerCapability' `
-                                                 -roleUrl 'http://localhost:8084/httpupload' `
+                                                 -roleUrl "http://${$domainName}:8084/httpupload" `
                                                  -roleProperties @{encoding='UTF-8'}
 
 
@@ -172,7 +174,7 @@ $stagingDeployerConfig = (resolve-path ("StagingDeployer\config\deployer-conf.xm
 
 & "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $stagingDiscoveryStorageConfig `
                                                  -roleName 'DeployerCapability' `
-                                                 -roleUrl 'http://localhost:9084/httpupload' `
+                                                 -roleUrl "http://${$domainName}:9084/httpupload" `
                                                  -roleProperties @{encoding='UTF-8'}
 
 
@@ -202,7 +204,7 @@ $contentStorageConfig = (resolve-path ("Content\config\cd_storage_conf.xml"))
 
 & "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $discoveryStorageConfig `
                                                  -roleName 'ContentServiceCapability' `
-                                                 -roleUrl 'http://localhost:8081/content.svc'
+                                                 -roleUrl "http://${$domainName}:8081/content.svc"
 
 & "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $discoveryStorageConfig `
                                                  -roleName 'WebCapability'                                                  
@@ -243,7 +245,7 @@ $stagingContentStorageConfig = (resolve-path ("StagingContent\config\cd_storage_
 
 & "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $stagingDiscoveryStorageConfig `
                                                  -roleName 'ContentServiceCapability' `
-                                                 -roleUrl 'http://localhost:9081/content.svc'
+                                                 -roleUrl "http://${$domainName}:9081/content.svc"
 
 & "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $stagingDiscoveryStorageConfig `
                                                  -roleName 'WebCapability' 
@@ -286,7 +288,7 @@ $previewStorageConfig = (resolve-path ("Preview\config\cd_storage_conf.xml"))
 
 & "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $stagingDiscoveryStorageConfig `
                                                  -roleName 'PreviewWebServiceCapability' `
-                                                 -roleUrl 'http://localhost:8083/ws/preview.svc'
+                                                 -roleUrl "http://${$domainName}:8083/ws/preview.svc"
 
 & "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("Preview\config\logback.xml")) `
                                   -logFolder "$LoggingOutputPath\Preview"
