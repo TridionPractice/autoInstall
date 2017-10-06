@@ -36,7 +36,7 @@ Copy-Item -Recurse "$InstallerDirectoryPath\Content Delivery\roles\context\servi
 $discoveryStorageConfig = (resolve-path ("Discovery\config\cd_storage_conf.xml"))
 & "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $discoveryStorageConfig `
                                                  -roleName 'ContextServiceCapability' `
-                                                 -roleUrl "http://${$domainName}:8087"
+                                                 -roleUrl "http://${domainName}:8087"
 
 
 & "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("Context\config\logback.xml")) `
@@ -53,10 +53,10 @@ $scriptPath = Split-Path $script:MyInvocation.MyCommand.Path
 #  CONTEXT SERVICE - STAGING
 Copy-Item -Recurse "$InstallerDirectoryPath\Content Delivery\roles\context\service\standalone" "StagingContext"
 
-$stagingDiscoveryStorageConfig = (resolve-path ("Discovery\config\cd_storage_conf.xml"))
+$stagingDiscoveryStorageConfig = (resolve-path ("StagingDiscovery\config\cd_storage_conf.xml"))
 & "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $stagingDiscoveryStorageConfig `
                                                  -roleName 'ContextServiceCapability' `
-                                                 -roleUrl "http://${$domainName}:9087"
+                                                 -roleUrl "http://${domainName}:9087"
 
 
 & "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("StagingContext\config\logback.xml")) `
@@ -71,10 +71,10 @@ $scriptPath = Split-Path $script:MyInvocation.MyCommand.Path
 & .\StagingContext\bin\Invoke-InstallService.ps1
 
 
-pushd Context\config
+pushd Discovery\config
 & java -jar discovery-registration.jar update 
 popd
 
-pushd StagingContext\config
+pushd StagingDiscovery\config
 & java -jar discovery-registration.jar update 
 popd
