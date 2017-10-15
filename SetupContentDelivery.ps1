@@ -10,7 +10,8 @@
 param(
 [ValidateScript({Test-Path $_ -PathType 'Container'})] 
 [string]$InstallerDirectoryPath='C:\Users\Administrator.WEB85\Downloads\SDL Web 8.5',
-
+[ValidateScript({Test-Path $_ -PathType 'Container'})] 
+[string]$DXAInstallerDirectoryPath='C:\Users\Administrator.WEB85\Downloads\SDL.DXA.Java.2.0.CTP.2',
 [string]$ServicesDirectoryPath='C:\SDLServices', 
 [string]$LoggingOutputPath='C:\SDLServiceLogs',
 [string]$DeployerStorage='C:\SDLDeployerStorage',
@@ -131,7 +132,7 @@ $deployerConfig = (resolve-path ("Deployer\config\deployer-conf.xml"))
 #      </Role>
 & "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $discoveryStorageConfig `
                                                  -roleName 'DeployerCapability' `
-                                                 -roleUrl "http://${$domainName}:8084/httpupload" `
+                                                 -roleUrl "http://$($domainName):8084/httpupload" `
                                                  -roleProperties @{encoding='UTF-8'}
 
 
@@ -174,7 +175,7 @@ $stagingDeployerConfig = (resolve-path ("StagingDeployer\config\deployer-conf.xm
 
 & "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $stagingDiscoveryStorageConfig `
                                                  -roleName 'DeployerCapability' `
-                                                 -roleUrl "http://${$domainName}:9084/httpupload" `
+                                                 -roleUrl "http://$($domainName):9084/httpupload" `
                                                  -roleProperties @{encoding='UTF-8'}
 
 
@@ -204,7 +205,7 @@ $contentStorageConfig = (resolve-path ("Content\config\cd_storage_conf.xml"))
 
 & "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $discoveryStorageConfig `
                                                  -roleName 'ContentServiceCapability' `
-                                                 -roleUrl "http://${$domainName}:8081/content.svc"
+                                                 -roleUrl "http://$($domainName):8081/content.svc"
 
 & "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $discoveryStorageConfig `
                                                  -roleName 'WebCapability'                                                  
@@ -245,7 +246,7 @@ $stagingContentStorageConfig = (resolve-path ("StagingContent\config\cd_storage_
 
 & "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $stagingDiscoveryStorageConfig `
                                                  -roleName 'ContentServiceCapability' `
-                                                 -roleUrl "http://${$domainName}:9081/content.svc"
+                                                 -roleUrl "http://$($domainName):9081/content.svc"
 
 & "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $stagingDiscoveryStorageConfig `
                                                  -roleName 'WebCapability' 
@@ -288,7 +289,7 @@ $previewStorageConfig = (resolve-path ("Preview\config\cd_storage_conf.xml"))
 
 & "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $stagingDiscoveryStorageConfig `
                                                  -roleName 'PreviewWebServiceCapability' `
-                                                 -roleUrl "http://${$domainName}:8083/ws/preview.svc"
+                                                 -roleUrl "http://$($domainName):8083/ws/preview.svc"
 
 & "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("Preview\config\logback.xml")) `
                                   -logFolder "$LoggingOutputPath\Preview"
@@ -301,6 +302,89 @@ $scriptPath = Split-Path $script:MyInvocation.MyCommand.Path
 
 & .\Preview\bin\Invoke-InstallService.ps1
 
+# Live DXA Model service
+Copy-Item -Recurse "$DXAInstallerDirectoryPath\cis\dxa-model-service\standalone" "DxaModel"
+
+$discoveryStorageConfig = (resolve-path ("Discovery\config\cd_storage_conf.xml"))
+& "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $discoveryStorageConfig `
+                                                 -roleName 'ContentServiceCapability' `
+                                                 -roleProperties @{'dxa-model-service'="http://${$domainName}:8998"}
+
+& "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("DxaModel\config\logback.xml")) `
+                                  -logFolder "$LoggingOutputPath\DxaModel"
+
+
+
+@'
+$scriptPath = Split-Path $script:MyInvocation.MyCommand.Path
+& $scriptPath\installService.ps1 --Name=SDLDXAModelService --Description="SDL DXA Model Service" `
+                                 --DisplayName="SDL DXA Model Service" --server.port=8998 --DependsOn=SDLWebDiscoveryService
+'@ > .\DxaModel\bin\Invoke-InstallService.ps1
+
+& .\DxaModel\bin\Invoke-InstallService.ps1
+
+
+# Staging DXA Model service
+Copy-Item -Recurse "$DXAInstallerDirectoryPath\cis\dxa-model-service\standalone" "StagingDxaModel"
+
+$stagingDiscoveryStorageConfig = (resolve-path ("StagingDiscovery\config\cd_storage_conf.xml"))
+& "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $stagingDiscoveryStorageConfig `
+                                                 -roleName 'ContentServiceCapability' `
+                                                 -roleProperties @{'dxa-model-service'="http://${$domainName}:9998"}
+
+
+& "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("StagingDxaModel\config\logback.xml")) `
+                                  -logFolder "$LoggingOutputPath\StagingDxaModel"
+
+@'
+$scriptPath = Split-Path $script:MyInvocation.MyCommand.Path
+& $scriptPath\installService.ps1 --Name=SDLDXAStagingModelService --Description="SDL DXA Staging Model Service" `
+                                 --DisplayName="SDL DXA Staging Model Service" --server.port=9998 --DependsOn=SDLWebStagingDiscoveryService 
+'@ > .\StagingDxaModel\bin\Invoke-InstallService.ps1
+
+& .\StagingDxaModel\bin\Invoke-InstallService.ps1
+
+#  CONTEXT SERVICE - LIVE
+Copy-Item -Recurse "$InstallerDirectoryPath\Content Delivery\roles\context\service\standalone" "Context"
+
+$discoveryStorageConfig = (resolve-path ("Discovery\config\cd_storage_conf.xml"))
+& "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $discoveryStorageConfig `
+                                                 -roleName 'ContextServiceCapability' `
+                                                 -roleUrl "http://$($domainName):8087"
+
+
+& "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("Context\config\logback.xml")) `
+                                  -logFolder "$LoggingOutputPath\Context"
+
+@'
+$scriptPath = Split-Path $script:MyInvocation.MyCommand.Path
+& $scriptPath\installService.ps1 --Name=ContextService --Description="SDL Context Service" `
+                                 --DisplayName="SDL Context Service" --server.port=8087 --DependsOn=SDLWebDiscoveryService 
+'@ > .\Context\bin\Invoke-InstallService.ps1
+
+& .\Context\bin\Invoke-InstallService.ps1
+
+#  CONTEXT SERVICE - STAGING
+Copy-Item -Recurse "$InstallerDirectoryPath\Content Delivery\roles\context\service\standalone" "StagingContext"
+
+$stagingDiscoveryStorageConfig = (resolve-path ("StagingDiscovery\config\cd_storage_conf.xml"))
+& "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $stagingDiscoveryStorageConfig `
+                                                 -roleName 'ContextServiceCapability' `
+                                                 -roleUrl "http://$($domainName):9087"
+
+
+& "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("StagingContext\config\logback.xml")) `
+                                  -logFolder "$LoggingOutputPath\StagingContext"
+
+@'
+$scriptPath = Split-Path $script:MyInvocation.MyCommand.Path
+& $scriptPath\installService.ps1 --Name=SDLStagingContextService --Description="SDL Staging Context Service" `
+                                 --DisplayName="SDL Staging Context Service" --server.port=9087 --DependsOn=SDLWebStagingDiscoveryService 
+'@ > .\StagingContext\bin\Invoke-InstallService.ps1
+
+& .\StagingContext\bin\Invoke-InstallService.ps1
+
+#REGISTER
 pushd StagingDiscovery\config
 & java -jar discovery-registration.jar update 
 popd
