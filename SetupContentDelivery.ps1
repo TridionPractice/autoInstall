@@ -308,7 +308,7 @@ Copy-Item -Recurse "$DXAInstallerDirectoryPath\cis\dxa-model-service\standalone"
 $discoveryStorageConfig = (resolve-path ("Discovery\config\cd_storage_conf.xml"))
 & "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $discoveryStorageConfig `
                                                  -roleName 'ContentServiceCapability' `
-                                                 -roleProperties @{'dxa-model-service'="http://${$domainName}:8998"}
+                                                 -roleProperties @{'dxa-model-service'="http://$($domainName):8998"}
 
 & "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("DxaModel\config\logback.xml")) `
                                   -logFolder "$LoggingOutputPath\DxaModel"
@@ -330,7 +330,7 @@ Copy-Item -Recurse "$DXAInstallerDirectoryPath\cis\dxa-model-service\standalone"
 $stagingDiscoveryStorageConfig = (resolve-path ("StagingDiscovery\config\cd_storage_conf.xml"))
 & "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $stagingDiscoveryStorageConfig `
                                                  -roleName 'ContentServiceCapability' `
-                                                 -roleProperties @{'dxa-model-service'="http://${$domainName}:9998"}
+                                                 -roleProperties @{'dxa-model-service'="http://$($domainName):9998"}
 
 
 & "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("StagingDxaModel\config\logback.xml")) `
