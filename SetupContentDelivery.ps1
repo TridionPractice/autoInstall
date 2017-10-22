@@ -358,7 +358,7 @@ $discoveryStorageConfig = (resolve-path ("Discovery\config\cd_storage_conf.xml")
 
 @'
 $scriptPath = Split-Path $script:MyInvocation.MyCommand.Path
-& $scriptPath\installService.ps1 --Name=ContextService --Description="SDL Context Service" `
+& $scriptPath\installService.ps1 --Name=SDLContextService --Description="SDL Context Service" `
                                  --DisplayName="SDL Context Service" --server.port=8087 --DependsOn=SDLWebDiscoveryService 
 '@ > .\Context\bin\Invoke-InstallService.ps1
 
