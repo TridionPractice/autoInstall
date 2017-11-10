@@ -24,7 +24,5 @@ if ($usePlaceHolders) {
 $configRepository = $config.Element('Configuration').Element('ConfigRepository')
 $configRepository.setAttributeValue("ServiceUri", $discoveryServiceUri)
 $configRepository.setAttributeValue("TokenServiceUrl", $tokenServiceUri)
-$tokenRole =$configRepository.Element('Roles').Elements('Role') | ? {$_.Attribute("Name").Value -eq 'TokenServiceCapability'}
-$tokenRole.setAttributeValue("Url", $tokenServiceUri)
 
 $config.Save($storageConfig) 
