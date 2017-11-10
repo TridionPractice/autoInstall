@@ -56,6 +56,9 @@ $discoveryStorageConfig = (resolve-path ("Discovery\config\cd_storage_conf.xml")
 & "$ScriptPath\Merge-ConfigRepository.ps1" -storageConfig $discoveryStorageConfig `
                                              -discoveryHost $domainName
 
+& "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $discoveryStorageConfig `
+                                                 -roleName 'TokenServiceCapability' `
+                                                 -roleUrl "http://$domainName`:8082/token.svc"
 
 & "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("Discovery\config\logback.xml")) `
                                   -logFolder "$LoggingOutputPath\Discovery"
@@ -85,6 +88,10 @@ $stagingDiscoveryStorageConfig = (resolve-path ("StagingDiscovery\config\cd_stor
 & "$ScriptPath\Merge-ConfigRepository.ps1" -storageConfig $stagingDiscoveryStorageConfig `
                                              -discoveryHost $domainName `
                                              -discoveryPort 9082 `
+
+& "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $stagingDiscoveryStorageConfig `
+                                                 -roleName 'TokenServiceCapability' `
+                                                 -roleUrl "http://$domainName`:9082/token.svc"
 
 & "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("StagingDiscovery\config\logback.xml")) `
                                   -logFolder "$LoggingOutputPath\StagingDiscovery"
@@ -208,7 +215,12 @@ $contentStorageConfig = (resolve-path ("Content\config\cd_storage_conf.xml"))
                                                  -roleUrl "http://$($domainName):8081/content.svc"
 
 & "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $discoveryStorageConfig `
-                                                 -roleName 'WebCapability'                                                  
+                                                 -roleName 'WebCapability'       
+                                                 
+# Content service needs to be able to find its discovery
+& "$ScriptPath\Merge-ConfigRepository.ps1" -storageConfig $contentStorageConfig `
+                                           -discoveryHost 'localhost'
+                                           
 
 & "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("Content\config\logback.xml")) `
                                   -logFolder "$LoggingOutputPath\Content"
@@ -250,6 +262,10 @@ $stagingContentStorageConfig = (resolve-path ("StagingContent\config\cd_storage_
 
 & "$ScriptPath\Merge-RoleToConfigRepository.ps1" -storageConfig $stagingDiscoveryStorageConfig `
                                                  -roleName 'WebCapability' 
+
+& "$ScriptPath\Merge-ConfigRepository.ps1" -storageConfig $stagingContentStorageConfig `
+                                             -discoveryHost 'localhost' `
+                                             -discoveryPort 9082 `
 
 & "$ScriptPath\Merge-Logback.ps1" -logbackFile (resolve-path ("StagingContent\config\logback.xml")) `
                                   -logFolder "$LoggingOutputPath\StagingContent"
